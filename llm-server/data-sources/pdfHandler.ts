@@ -1,9 +1,9 @@
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { CustomPDFLoader } from '@/utils/customPDFLoader';
+import { getEmbeddings } from '@/utils/getEmbedding';
 import { initVectorStore } from '@/utils/initVectorStore';
 import { pinecone } from '@/utils/pinecone-client';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -24,7 +24,7 @@ export default async function pdfHandler(req: NextApiRequest, res: NextApiRespon
 
         const docs = await textSplitter.splitDocuments(rawDocs);
 
-        const embeddings = new OpenAIEmbeddings();
+        const embeddings = getEmbeddings();
         const index = pinecone.Index(PINECONE_INDEX_NAME);
 
         await initVectorStore(docs, embeddings, {index, namespace});

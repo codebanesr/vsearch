@@ -1,10 +1,11 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 import {PINECONE_INDEX_NAME} from '@/config/pinecone';
 import {RecursiveCharacterTextSplitter} from 'langchain/text_splitter';
-import {OpenAIEmbeddings} from 'langchain/embeddings/openai';
+
 import {pinecone} from '@/utils/pinecone-client';
 import {GithubRepoLoader} from "langchain/document_loaders/web/github";
 import { initVectorStore } from '@/utils/initVectorStore';
+import { getEmbeddings } from '@/utils/getEmbedding';
 
 export default async function codebaseHandler(req: NextApiRequest, res: NextApiResponse) {
     try {
@@ -25,7 +26,9 @@ export default async function codebaseHandler(req: NextApiRequest, res: NextApiR
 
         console.log('Split documents')
 
-        const embeddings = new OpenAIEmbeddings();
+        const embeddings = getEmbeddings();
+
+
         const index = pinecone.Index(PINECONE_INDEX_NAME);
 
         await initVectorStore(docs, embeddings, {index, namespace})

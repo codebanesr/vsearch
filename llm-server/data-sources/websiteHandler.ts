@@ -3,9 +3,9 @@ import {PINECONE_INDEX_NAME} from '@/config/pinecone';
 import {DirectoryLoader} from 'langchain/document_loaders/fs/directory';
 import {RecursiveCharacterTextSplitter} from 'langchain/text_splitter';
 import {TextLoader} from 'langchain/document_loaders';
-import {OpenAIEmbeddings} from 'langchain/embeddings/openai';
 import {pinecone} from '@/utils/pinecone-client';
 import { initVectorStore } from '@/utils/initVectorStore';
+import { getEmbeddings } from '@/utils/getEmbedding';
 
 export default async function websiteHandler(req: NextApiRequest, res: NextApiResponse) {
     try {
@@ -24,7 +24,7 @@ export default async function websiteHandler(req: NextApiRequest, res: NextApiRe
 
         const docs = await textSplitter.splitDocuments(rawDocs);
 
-        const embeddings = new OpenAIEmbeddings();
+        const embeddings = getEmbeddings();
         const index = pinecone.Index(PINECONE_INDEX_NAME);
 
         await initVectorStore(docs, embeddings, {index, namespace})
