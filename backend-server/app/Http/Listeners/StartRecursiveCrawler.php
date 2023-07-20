@@ -47,7 +47,7 @@ class StartRecursiveCrawler implements ShouldQueue
             $dataSource->save();
 
             // Start crawling from the root URL
-            $this->crawl($url, $crawledUrls, 15, $rootUrl, $chatbotId, $dataSource->getId());
+            $this->crawl($url, $crawledUrls, env('MAX_CRAWL_PAGES', 15), $rootUrl, $chatbotId, $dataSource->getId());
 
             event(new WebsiteDataSourceCrawlingWasCompleted($chatbotId, $dataSource->getId()));
         } catch (Exception|Throwable $exception) {
