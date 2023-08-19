@@ -1,8 +1,9 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from langchain import QAWithSourcesChain
 
 from api.utils import get_vector_store
-from api.utils.make_chain import getConversationRetrievalChain
+from api.utils.make_chain import getConversationRetrievalChain, getRetrievalQAWithSourcesChain, getBabyAgi
 import json
 from django.views.decorators.csrf import csrf_exempt
 from api.interfaces import StoreOptions
@@ -13,6 +14,13 @@ from uuid import uuid4
 import logging
 import traceback
 from web.services.chat_history_service import get_chat_history_for_retrieval_chain
+import os
+
+from dotenv import load_dotenv
+from langchain.vectorstores import FAISS
+from langchain.docstore import InMemoryDocstore
+from api.utils import get_embeddings
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +44,8 @@ def chat(request):
         sanitized_question = question.strip().replace('\n', ' ')
 
         vector_store = get_vector_store(StoreOptions(namespace=namespace))
-        chain = getConversationRetrievalChain(vector_store, mode, initial_prompt, memory_key=session_id)
         
-        # To avoid fetching an excessively large amount of history data from the database, set a limit on the maximum number of records that can be retrieved in a single query.
-        chat_history = get_chat_history_for_retrieval_chain(session_id, limit=40)
-        response = chain({"question": sanitized_question, "chat_history": chat_history }, return_only_outputs=True)
-        response_text = response['answer']
+        response_text = get_completion_response(vector_store=vector_store, initial_prompt=initial_prompt,mode=mode, sanitized_question=sanitized_question, session_id=session_id)
 
         ChatHistory.objects.bulk_create([
             ChatHistory(
@@ -69,3 +73,39 @@ def chat(request):
         logger.error(str(e))
         logger.error(traceback.format_exc())
         return JsonResponse({'error': 'An error occurred'}, status=500)
+
+
+
+def get_completion_response(vector_store, mode, initial_prompt, sanitized_question, session_id):
+    try:
+        chain_type = os.getenv("CHAIN_TYPE", "conversation_retrieval")
+        chain: QAWithSourcesChain
+        if chain_type == 'retrieval_qa':
+            chain = getRetrievalQAWithSourcesChain(vector_store, mode, initial_prompt)
+            response = chain({"question": sanitized_question}, return_only_outputs=True)
+            response_text = response['answer']
+        elif chain_type == 'conversation_retrieval':
+            chain = getConversationRetrievalChain(vector_store, mode, initial_prompt)
+            chat_history = get_chat_history_for_retrieval_chain(session_id, limit=40)
+            response = chain({"question": sanitized_question, "chat_history": chat_history}, return_only_outputs=True)
+            response_text = response['answer']
+        
+        elif chain_type == 'baby_agi':
+            # Define your embedding model
+            embeddings_model = get_embeddings()
+            # Initialize the vectorstore as empty
+            import faiss
+
+            embedding_size = 1536
+            index = faiss.IndexFlatL2(embedding_size)
+            vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+            chain = getBabyAgi(vector_store=vectorstore)
+            response = chain({"objective": sanitized_question})
+            response_text = response['result']
+    
+        return response_text
+    except Exception as e:
+        # Log the error stack trace
+        traceback_str = traceback.format_exc()
+        print(f"An error occurred:\n{traceback_str}")
+        return None  # Or handle the error in a way that suits your application
