@@ -3,6 +3,8 @@ from api.enums import EmbeddingProvider
 import os
 from dotenv import load_dotenv
 from langchain.embeddings.base import Embeddings
+from langchain.embeddings import LocalAIEmbeddings
+from openai import api_type
 
 load_dotenv()
 
@@ -37,6 +39,15 @@ def get_openai_embedding():
 
     return OpenAIEmbeddings(openai_api_key=openai_api_key, chunk_size=1)
 
+
+def get_localai_embedding():
+    # Get the value of LOCAL_AI_HOST environment variable
+    local_ai_host = os.getenv("LOCAL_AI_HOST")
+
+    embedding = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_base=local_ai_host)
+    return embedding
+
+
 def choose_embedding_provider():
     """Chooses and returns the appropriate embedding provider instance."""
     embedding_provider = get_embedding_provider()
@@ -46,6 +57,9 @@ def choose_embedding_provider():
     
     elif embedding_provider == EmbeddingProvider.OPENAI.value:
         return get_openai_embedding()
+    
+    elif embedding_provider == EmbeddingProvider.localai.value:
+        return get_localai_embedding()
 
     else:
         available_providers = ", ".join([service.value for service in EmbeddingProvider])

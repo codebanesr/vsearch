@@ -25,6 +25,16 @@ def get_azure_openai_llm():
         batch_size=8
     )
 
+def get_localai_llm():
+    """Returns LocalAI instance configured from environment variables"""
+    # Get the value of LOCAL_AI_HOST environment variable
+    local_ai_host = os.getenv("LOCAL_AI_HOST")
+
+    # Get the value of LOCAL_AI_MODEL_NAME environment variable
+    local_ai_model_name = os.getenv("LOCAL_AI_MODEL_NAME")
+    return OpenAI(temperature=0.2, openai_api_base=local_ai_host, model=local_ai_model_name, verbose=True)
+
+
 # OpenAI Language Model client  
 def get_openai_llm():
     """Returns OpenAI instance configured from environment variables"""
@@ -43,7 +53,8 @@ def get_llm():
     
     clients = {
         'azure': get_azure_openai_llm,
-        'openai': get_openai_llm
+        'openai': get_localai_llm,
+        'localai': get_localai_llm
     }
     
     api_type = os.environ.get('OPENAI_API_TYPE')

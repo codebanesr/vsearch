@@ -5,4 +5,5 @@ class EmbeddingProvider(Enum):
     OPENAI = "openai"
     BARD = "bard"
     azure = "azure"
+    localai = 'localai'
 

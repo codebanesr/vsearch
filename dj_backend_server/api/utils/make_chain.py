@@ -39,6 +39,6 @@ def getConversationRetrievalChain(vector_store: VectorStore, mode, initial_promp
         chain_type="stuff", 
         retriever=vector_store.as_retriever(), 
         verbose=True,
-        combine_docs_chain_kwargs={"prompt": prompt}
+        combine_docs_chain_kwargs={"prompt": prompt},
     )
     return chain
